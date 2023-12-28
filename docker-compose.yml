@@ -1,0 +1,69 @@
+version: '3.8'
+services:
+  nginx:
+    build:
+      context: docker/nginx
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    ports:
+      - ${NGINX_PORT}:${NGINX_PORT}
+    environment:
+      NGINX_PORT: ${NGINX_PORT}
+      APP_PHP_SERVICE_NAME: ${APP_PHP_SERVICE_NAME}
+      APP_PHP_PORT: ${APP_PHP_PORT}
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - mysql
+      - ${APP_PHP_SERVICE_NAME}
+  mysql:
+    image: mysql:latest
+    ports:
+      - ${MYSQL_PORT}:${MYSQL_PORT}
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - database:/var/lib/mysql
+  app:
+    build:
+      context: docker/php
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    ports:
+      - ${APP_PHP_PORT}:${APP_PHP_PORT}
+    volumes:
+      - ./src:/var/www/html
+  composer:
+    build:
+      context: docker/composer
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+  npm:
+    image: node:current-alpine
+    volumes:
+      - ./src:/var/www/html
+    entrypoint: [ "npm" ]
+    working_dir: /var/www/html
+  artisan:
+    build:
+      context: docker/php
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    depends_on:
+      - mysql
+    entrypoint: ["php", "/var/www/html/artisan"]
+volumes:
+  database:
